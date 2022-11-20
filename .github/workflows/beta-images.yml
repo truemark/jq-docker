@@ -1,0 +1,66 @@
+name: beta
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Get Version
+        id: version
+        run: |
+          export JQ_VERSION=$(curl -sSL https://api.github.com/repos/stedolan/jq/tags | jq -r "[.[].name] | .[0] | sub(\"jq-\";\"\")")
+          echo "JQ_VERSION=${JQ_VERSION}" >> $GITHUB_ENV
+          echo "Version: ${JQ_VERSION}"
+          export TAG_EXISTS=$(curl -sSL https://api.github.com/repos/truemark/jq-docker/tags | jq -r ".[].name == \"beta-${JQ_VERSION}\"")
+          echo "TAG_EXISTS=${TAG_EXISTS}" >> $GITHUB_ENV
+          echo "Exists: ${TAG_EXISTS}"
+      - name: Build
+        if: ${{ env.TAG_EXISTS != 'true' }}
+        run: |
+          docker buildx build \
+            --push \
+            --platform linux/arm64,linux/amd64 \
+            --build-arg JQ_VERSION="${JQ_VERSION}" \
+            -f Dockerfile \
+            -t truemark/jq:beta-${JQ_VERSION} \
+            -t truemark/jq:beta \
+            .
+          IMAGE="truemark/jq:beta-${JQ_VERSION}" ARCH="amd64" FILE="jq-linux-amd64" ./getlayer.sh
+          IMAGE="truemark/jq:beta-${JQ_VERSION}" ARCH="arm64" FILE="jq-linux-arm64" ./getlayer.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        if: ${{ env.TAG_EXISTS != 'true' }}
+        with:
+          name: files
+          path: |
+            jq-*
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        if: ${{ env.TAG_EXISTS != 'true' }}
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: |
+            jq-*
+          release_name: beta-${{env.JQ_VERSION}}
+          tag: beta-${{env.JQ_VERSION}}
+          overwrite: true
