@@ -3,14 +3,25 @@
 This project produces jq binaries and docker images using sources located at
 https://api.github.com/repos/stedolan/jq/ with the following goals:
 
-* Provide an easy way to get the latest version of jq
-* Provide amd64 and arm64 versions of jq for Linux
-* Provide single layered Docker images
+* Provide a way to get both amd64 and arm64 builds of jq
+* Provide a way to copy jq from a single layer minimal docker imag
 
 ## How do I get the latest version of jq into my docker image?
 
 ```
 COPY --from=truemark/jq:latest /usr/local/ /usr/local/
+```
+
+## How do I download the latest version of jq without using docker?
+
+Download arm64
+```bash
+curl -sSL $(curl -sSL https://api.github.com/repos/truemark/jq-docker/releases/latest | grep browser_download_url | grep arm64 | cut -d ':' -f 2,3 | tr -d \") -o jq
+```
+
+Download amd64
+```bash
+curl -sSL $(curl -sSL https://api.github.com/repos/truemark/jq-docker/releases/latest | grep browser_download_url | grep amd64 | cut -d ':' -f 2,3 | tr -d \") -o jq
 ```
 
 ## Maintainers
