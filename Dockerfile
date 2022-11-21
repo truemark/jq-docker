@@ -5,7 +5,8 @@ RUN cd / && \
     git clone https://github.com/stedolan/jq.git && \
     cd /jq && \
     git checkout jq-${JQ_VERSION}
-RUN git submodule update --init && \
+RUN cd /jq && \
+    git submodule update --init && \
     autoreconf -fi && \
     ./configure --enable-all-static --prefix=/usr/local --with-oniguruma=builtin && \
     sed -i 's/--dirty//g' scripts/version && \
