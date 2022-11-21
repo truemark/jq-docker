@@ -4,7 +4,7 @@ This project produces jq binaries and docker images using sources located at
 https://api.github.com/repos/stedolan/jq/ with the following goals:
 
 * Provide a way to get both amd64 and arm64 builds of jq
-* Provide a way to copy jq from a single layer minimal docker imag
+* Provide a way to copy jq from a single layer minimal docker image
 
 ## How do I get the latest version of jq into my docker image?
 
