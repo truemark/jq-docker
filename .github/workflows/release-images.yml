@@ -68,4 +68,14 @@ jobs:
           tag: ${{env.JQ_VERSION}}
           overwrite: true
       - name: Keepalive
-        uses: gautamkrishnar/keepalive-workflow@v1
+        uses: gautamkrishnar/keepalive-workflow@1-node16
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
+          region: us-east-2
+          role-session-name: jq-docker
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+      -
+

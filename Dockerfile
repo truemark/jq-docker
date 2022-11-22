@@ -1,6 +1,6 @@
 FROM amazonlinux:2022 AS git-build
 ARG JQ_VERSION
-RUN yum install -q -y git automake autoconf flex bison libtool which diffutils
+RUN yum install -q -y git automake autoconf flex bison libtool which diffutils glibc-static
 RUN cd / && \
     git clone https://github.com/stedolan/jq.git && \
     cd /jq && \
@@ -10,7 +10,7 @@ RUN cd /jq && \
     autoreconf -fi && \
     ./configure --enable-all-static --prefix=/usr/local --with-oniguruma=builtin && \
     sed -i 's/--dirty//g' scripts/version && \
-    make -j8 && \
+    make LDFLAGS=-all-static -j8 && \
     make check && \
     strip jq && \
     rm -rf /usr/local/* && \
