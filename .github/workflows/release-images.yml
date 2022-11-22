@@ -68,7 +68,7 @@ jobs:
           tag: ${{env.JQ_VERSION}}
           overwrite: true
       - name: Keepalive
-        uses: gautamkrishnar/keepalive-workflow@1-node16
+        uses: gautamkrishnar/keepalive-workflow@1
 #      - name: Configure AWS Credentials
 #        uses: aws-actions/configure-aws-credentials@v1-node16
 #        with:
