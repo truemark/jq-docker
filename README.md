@@ -24,13 +24,18 @@ Download amd64
 curl -sSL $(curl -sSL https://api.github.com/repos/truemark/jq-docker/releases/latest | grep browser_download_url | grep amd64 | cut -d ':' -f 2,3 | tr -d \") -o jq
 ```
 
+## Links
+
+ * [GitHub Repository - https://github.com/truemark/jq-docker](https://github.com/truemark/jq-docker)
+ * [DockerHub Repository - https://hub.docker.com/repository/docker/truemark/git-crypt](https://hub.docker.com/repository/docker/truemark/git-crypt)
+   
 ## Maintainers
 
-- [erikrj](https://github.com/erikrj)
+ * [erikrj](https://github.com/erikrj)
 
 ## License
 
 The contents of this repository are released under the BSD 3-Clause license. See the
-license [here](https://github.com/truemark/git-crypt-docker/blob/main/LICENSE.txt).
+license [here](https://github.com/truemark/jq-docker/blob/main/LICENSE.txt).
 
 
