@@ -6,42 +6,79 @@ on:
     branches:
       - develop
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: all
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
       - name: Get Version
         id: version
         run: |
           export JQ_VERSION=$(curl -sSL https://api.github.com/repos/stedolan/jq/tags | jq -r "[.[].name] | .[0] | sub(\"jq-\";\"\")")
           echo "JQ_VERSION=${JQ_VERSION}" >> $GITHUB_ENV
           echo "Version: ${JQ_VERSION}"
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: "${{ secrets.AWS_ASSUME_ROLE }}"
+          aws-region: "us-east-1"
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: public
+      - name: Setup Buildx Remote Docker
+        id: buildx
+        uses: truemark/aws-buildx-remote-docker-instance-action@v4
+        with:
+          security-group-id: "${{ vars.SECURITY_GROUP_ID }}"
+          subnet-id: "${{ vars.SUBNET_ID }}"
+          instance-profile: "${{ vars.INSTANCE_PROFILE }}"
+          region: "us-east-2"
       - name: Build
         run: |
           docker buildx build \
             --push \
             --platform linux/arm64,linux/amd64 \
-            --build-arg JQ_VERSION="${JQ_VERSION}" \
+            --build-arg JQ_VERSION="${{ env.JQ_VERSION }}" \
             -f Dockerfile \
-            -t truemark/jq:beta-${JQ_VERSION} \
+            -t truemark/jq:beta-${{ env.JQ_VERSION }} \
             -t truemark/jq:beta \
             .
-          IMAGE="truemark/jq:beta-${JQ_VERSION}" ARCH="amd64" FILE="jq-linux-amd64" ./getlayer.sh
-          IMAGE="truemark/jq:beta-${JQ_VERSION}" ARCH="arm64" FILE="jq-linux-arm64" ./getlayer.sh
+      - name: Copy beta-${{ env.JQ_VERSION }} to ECR
+        uses: truemark/skopeo-copy-action@v1
+        with:
+          src-image: "docker://truemark/jq:beta-${{ env.JQ_VERSION }}"
+          dest-image: "docker://public.ecr.aws/truemark/jq:beta-${{ env.JQ_VERSION }}"
+          src-username: "${{ secrets.DOCKER_HUB_USERNAME }}"
+          src-password: "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}"
+          dest-username: "${{ steps.ecr-login.outputs.docker_username_public_ecr_aws }}"
+          dest-password: "${{ steps.ecr-login.outputs.docker_password_public_ecr_aws }}"
+          multi-arch: "all"
+      - name: Copy beta to ECR
+        uses: truemark/skopeo-copy-action@v1
+        with:
+          src-image: "docker://truemark/jq:beta"
+          dest-image: "docker://public.ecr.aws/truemark/jq:beta"
+          src-username: "${{ secrets.DOCKER_HUB_USERNAME }}"
+          src-password: "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}"
+          dest-username: "${{ steps.ecr-login.outputs.docker_username_public_ecr_aws }}"
+          dest-password: "${{ steps.ecr-login.outputs.docker_password_public_ecr_aws }}"
+          multi-arch: "all"
+      - name: Package
+        run: |
+          IMAGE="truemark/jq:beta-${{ env.JQ_VERSION }}" ARCH="amd64" FILE="jq-linux-amd64" ./getlayer.sh
+          IMAGE="truemark/jq:beta-${{ env.JQ_VERSION }}" ARCH="arm64" FILE="jq-linux-arm64" ./getlayer.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
