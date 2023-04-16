@@ -25,7 +25,7 @@ jobs:
           export JQ_VERSION=$(curl -sSL https://api.github.com/repos/stedolan/jq/tags | jq -r "[.[].name] | .[0] | sub(\"jq-\";\"\")")
           echo "JQ_VERSION=${JQ_VERSION}" >> $GITHUB_ENV
           echo "Version: ${JQ_VERSION}"
-          export TAG_EXISTS=$(curl -sSL https://api.github.com/repos/truemark/jq-docker/tags | jq -r ".[].name == \"beta-${JQ_VERSION}\"")
+          export TAG_EXISTS=$( curl -sSL https://api.github.com/repos/truemark/jq-docker/tags | jq -r "[.[].name] | index(\"${JQ_VERSION}\") != null")
           echo "TAG_EXISTS=${TAG_EXISTS}" >> $GITHUB_ENV
           echo "Exists: ${TAG_EXISTS}"
       - name: Login to Docker Hub
